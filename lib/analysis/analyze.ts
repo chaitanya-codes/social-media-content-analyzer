@@ -1,4 +1,4 @@
-import type { AnalysisResult, Finding, Recommendation, Signal } from "@/types/analysis";
+import type { AnalysisResult, ContentEntity, Finding, Recommendation, Signal } from "@/types/analysis";
 
 const words = (text: string) => text.trim() ? text.trim().split(/\s+/) : [];
 const sentences = (text: string) => text.split(/[.!?]+/).map(s => s.trim()).filter(Boolean);
@@ -6,10 +6,17 @@ const hasAny = (text: string, terms: string[]) => terms.some(t => text.toLowerCa
 
 export function analyzeContent(text: string): AnalysisResult {
   const clean = text.trim(); const ws = words(clean); const ss = sentences(clean); const first = ss[0] || "";
-  if (!clean) return {overallScore:0, wordCount:0, characterCount:0, sentenceCount:0, readingTime:"0 min", averageSentenceLength:0, questions:0, ctas:0, hashtags:0, mentions:0, links:0, emojis:0, signals:[], findings:[], recommendations:[]};
+  if (!clean) return {overallScore:0, wordCount:0, characterCount:0, sentenceCount:0, readingTime:"0 min", averageSentenceLength:0, questions:0, ctas:0, hashtags:0, mentions:0, links:0, emojis:0, signals:[], findings:[], entities:[], recommendations:[]};
   const hashtagList = clean.match(/#[\p{L}\d_]+/gu) || []; const mentionList = clean.match(/@[\w.]+/g) || [];
   const questionCount = (clean.match(/\?/g) || []).length; const ctaCount = hasAny(clean, ["comment", "share", "follow", "save", "tell me", "what do you", "let me know", "reply"]) ? 1 : 0;
   const avg = ss.length ? Math.round(ws.length / ss.length) : 0; const linkCount = (clean.match(/https?:\/\/\S+/g) || []).length; const emojiCount = (clean.match(/[\p{Emoji_Presentation}\uFE0F]/gu) || []).length;
+  const entities: ContentEntity[] = [];
+  const addEntities = (type: ContentEntity["type"], regex: RegExp, detail: string, count: number) => { for (const match of clean.matchAll(regex)) { const textValue = match[0]; const startIndex = match.index ?? -1; if (startIndex >= 0) entities.push({id:`${type}-${startIndex}`, type, text:textValue, startIndex, endIndex:startIndex + textValue.length, detail, count}); } };
+  addEntities("hashtag", /#[\p{L}\d_]+/gu, "Relevant hashtag found in the post.", hashtagList.length);
+  addEntities("mention", /@[\w.]+/g, "Mention detected; this may direct attention to another account.", mentionList.length);
+  addEntities("link", /https?:\/\/\S+/g, "Link detected in the post.", linkCount);
+  for (const match of clean.matchAll(/\?/g)) { const questionIndex = match.index ?? -1; const context = clean.slice(Math.max(0, questionIndex - 200), questionIndex); if (questionIndex < 0 || /https?:\/\/\S*$/.test(context)) continue; const startIndex = Math.max(context.lastIndexOf("\n"), context.lastIndexOf("."), context.lastIndexOf("—")) + 1; const textValue = clean.slice(Math.max(0, questionIndex - context.length + startIndex), questionIndex + 1).trim(); const actualStart = clean.indexOf(textValue, Math.max(0, questionIndex - context.length)); if (textValue) entities.push({id:`question-${questionIndex}`, type:"question", text:textValue, startIndex:actualStart, endIndex:actualStart + textValue.length, detail:"Question detected; this may encourage reader participation.", count:questionCount}); }
+  addEntities("emoji", /\p{Extended_Pictographic}/gu, "Emoji detected; it contributes a visual tone cue.", emojiCount);
   const hookScore = !first ? 0 : Math.min(96, 45 + (first.length < 100 ? 18 : 0) + (/\?|!|\d/.test(first) ? 15 : 0) + (ws.length > 20 ? 8 : 0));
   const clarity = !clean ? 0 : Math.max(35, Math.min(96, 92 - Math.max(0, avg - 20) * 2 - (clean.length > 1200 ? 12 : 0)));
   const readability = !clean ? 0 : Math.max(30, Math.min(96, 94 - Math.max(0, avg - 14) * 3 - (ss.length === 1 && ws.length > 35 ? 8 : 0)));
@@ -45,5 +52,6 @@ export function analyzeContent(text: string): AnalysisResult {
   if (questionCount || ctaCount) recommendations.push({category:"Interaction", title:"Conversation signal detected", explanation:"Your post already gives readers a reason to participate.", action:"Keep the prompt specific and easy to answer.", tone:"positive"});
   if (!recommendations.length) recommendations.push({category:"Clarity", title:"Keep the structure", explanation:"The core signals are balanced and readable.", action:"Preserve this rhythm as you refine the wording.", tone:"positive"});
   const improvedDraft = !clean ? undefined : (ctaCount ? clean : `${clean}\n\nWhat part of this would you approach differently?`);
-  return {overallScore, wordCount:ws.length, characterCount:clean.length, sentenceCount:ss.length, readingTime:`${Math.max(1, Math.ceil(ws.length / 200))} min`, averageSentenceLength:avg, questions:questionCount, ctas:ctaCount, hashtags:hashtagList.length, mentions:mentionList.length, links:linkCount, emojis:emojiCount, signals, findings, recommendations, improvedDraft};
+  entities.sort((a,b)=>a.startIndex-b.startIndex || (a.type === "question" ? 1 : -1));
+  return {overallScore, wordCount:ws.length, characterCount:clean.length, sentenceCount:ss.length, readingTime:`${Math.max(1, Math.ceil(ws.length / 200))} min`, averageSentenceLength:avg, questions:questionCount, ctas:ctaCount, hashtags:hashtagList.length, mentions:mentionList.length, links:linkCount, emojis:emojiCount, signals, findings, entities, recommendations, improvedDraft};
 }
