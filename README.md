@@ -9,7 +9,9 @@ PostLens is a local/server-side social media content analyzer. Upload a selectab
 - PDF text extraction with whitespace normalization.
 - Tesseract.js OCR for screenshots and photographed documents.
 - Deterministic analysis with evidence-backed signal explanations and contextual recommendations.
-- Sample post, processing states, responsive results view, and copyable suggested draft.
+- Interactive evidence highlights tied to analyzer text ranges.
+- Contextual fix preview with safe deterministic replacements and immediate re-analysis.
+- Sample post, processing states, responsive results view, and copyable current draft.
 
 ## Architecture
 
@@ -26,7 +28,7 @@ Open `http://localhost:3000`. Production verification uses `npm run build` follo
 
 ## Analysis approach
 
-Scores are directional averages of six signals. They use observable properties such as sentence length, opening structure, questions, CTA language, and hashtag count. Recommendations explain the detected condition and suggest a concrete edit. No engagement outcome is predicted.
+Scores are directional averages of six signals. They use observable properties such as sentence length, opening structure, questions, CTA language, and hashtag count. Attention findings carry verified ranges into the original text, so a highlight is never positioned from a hardcoded sample assumption. The UI connects a finding to its explanation, previews only bounded deterministic fixes, applies the change in place, and re-runs the analyzer. No engagement outcome is predicted.
 
 ## Design decisions and limitations
 
@@ -34,8 +36,8 @@ Uploads are processed in memory and are not persisted or sent to an external AI 
 
 ## Project structure
 
-`app/` contains the UI and API route. `components/` is intentionally not needed for the current focused surface. `lib/extraction` contains normalization, `lib/validation` contains file checks, `lib/analysis` contains the deterministic engine and tests, and `types/` contains domain types.
+`app/` contains the UI and API route. `components/results/` contains the interactive text, finding detail, and fix preview surfaces. `lib/extraction` contains normalization, `lib/validation` contains file checks, `lib/analysis` contains the deterministic engine and tests, and `types/` contains domain types.
 
 ## Future improvements
 
-Add PDF OCR fallback, richer inline highlights, platform-specific modes, and background processing for larger OCR jobs.
+Add PDF OCR fallback, richer finding types, platform-specific modes, and background processing for larger OCR jobs.
