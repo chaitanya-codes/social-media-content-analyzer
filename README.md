@@ -10,6 +10,8 @@ PostLens is a local/server-side social media content analyzer. Upload a selectab
 - Tesseract.js OCR for screenshots and photographed documents.
 - Deterministic analysis with evidence-backed signal explanations and contextual recommendations.
 - Interactive evidence highlights tied to analyzer text ranges.
+- Read/Analyze mode with separate detected-content and actionable-finding treatments.
+- Context panels for recognized hashtags, mentions, links, questions, and emojis.
 - Contextual fix preview with safe deterministic replacements and immediate re-analysis.
 - Sample post, processing states, responsive results view, and copyable current draft.
 
@@ -28,7 +30,7 @@ Open `http://localhost:3000`. Production verification uses `npm run build` follo
 
 ## Analysis approach
 
-Scores are directional averages of six signals. They use observable properties such as sentence length, opening structure, questions, CTA language, and hashtag count. Attention findings carry verified ranges into the original text, so a highlight is never positioned from a hardcoded sample assumption. The UI connects a finding to its explanation, previews only bounded deterministic fixes, applies the change in place, and re-runs the analyzer. No engagement outcome is predicted.
+Scores are directional averages of six signals. They use observable properties such as sentence length, opening structure, questions, CTA language, and hashtag count. Content entities are separately detected for hashtags, mentions, links, questions, and emojis. Attention findings carry verified ranges into the original text, so a highlight is never positioned from a hardcoded sample assumption. The UI connects a finding to its explanation, previews only bounded deterministic fixes, applies the change in place, and re-runs the analyzer. No engagement outcome is predicted.
 
 ## Design decisions and limitations
 
