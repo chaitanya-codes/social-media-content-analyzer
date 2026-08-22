@@ -4,6 +4,9 @@ import { createWorker } from "tesseract.js";
 import { analyzeContent } from "@/lib/analysis/analyze";
 import { normalizeText } from "@/lib/extraction/normalize";
 import { MAX_FILE_SIZE } from "@/lib/validation/files";
+import { analyzeWithGemini } from "@/lib/ai/gemini";
+import { mergeSemanticAnalysis, resolvePlatform } from "@/lib/ai/merge";
+import { detectPlatform } from "@/lib/platform/detect";
 export const runtime = "nodejs";
 export async function POST(request: Request) {
   try {
@@ -15,6 +18,11 @@ export async function POST(request: Request) {
     else if (["image/png","image/jpeg","image/webp"].includes(file.type)) { sourceType="image"; extractionMethod="ocr"; const worker = await createWorker("eng"); const result = await worker.recognize(buffer); text = normalizeText(result.data.text || ""); extractionQuality = result.data.confidence >= 80 ? "high" : result.data.confidence >= 55 ? "medium" : "low"; await worker.terminate(); }
     else return NextResponse.json({error:"This file type isn't supported."}, {status:415});
     if (!text) return NextResponse.json({error:"No readable text was found. Try a clearer image or a selectable-text PDF."}, {status:422});
-    return NextResponse.json({filename:file.name.replace(/[^\w. -]/g, ""), sourceType, extractionMethod, extractionQuality, text, analysis:analyzeContent(text)});
+    const deterministicAnalysis = analyzeContent(text);
+    const deterministicPlatform = detectPlatform(text);
+    const semantic = await analyzeWithGemini({text, platform:deterministicPlatform.platform, image:sourceType === "image" && process.env.GEMINI_API_KEY ? {mimeType:file.type, data:buffer.toString("base64")} : undefined});
+    const analysis = semantic.status === "available" ? mergeSemanticAnalysis(deterministicAnalysis, text, semantic.output) : deterministicAnalysis;
+    const platformDetection = resolvePlatform(deterministicPlatform, semantic.status === "available" ? semantic.output : undefined);
+    return NextResponse.json({filename:file.name.replace(/[^\w. -]/g, ""), sourceType, extractionMethod, extractionQuality, text, platformDetection, semanticAnalysis:{status:semantic.status, ...(semantic.status !== "available" ? {message:semantic.message} : {})}, analysis});
   } catch { return NextResponse.json({error:"We couldn't scan that file. Check the file and try again."}, {status:500}); }
 }

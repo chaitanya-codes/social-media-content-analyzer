@@ -52,6 +52,7 @@ export function analyzeContent(text: string): AnalysisResult {
   if (questionCount || ctaCount) recommendations.push({category:"Interaction", title:"Conversation signal detected", explanation:"Your post already gives readers a reason to participate.", action:"Keep the prompt specific and easy to answer.", tone:"positive"});
   if (!recommendations.length) recommendations.push({category:"Clarity", title:"Keep the structure", explanation:"The core signals are balanced and readable.", action:"Preserve this rhythm as you refine the wording.", tone:"positive"});
   const improvedDraft = !clean ? undefined : (ctaCount ? clean : `${clean}\n\nWhat part of this would you approach differently?`);
+  findings.forEach(finding => { finding.source = "deterministic"; });
   entities.sort((a,b)=>a.startIndex-b.startIndex || (a.type === "question" ? 1 : -1));
   return {overallScore, wordCount:ws.length, characterCount:clean.length, sentenceCount:ss.length, readingTime:`${Math.max(1, Math.ceil(ws.length / 200))} min`, averageSentenceLength:avg, questions:questionCount, ctas:ctaCount, hashtags:hashtagList.length, mentions:mentionList.length, links:linkCount, emojis:emojiCount, signals, findings, entities, recommendations, improvedDraft};
 }

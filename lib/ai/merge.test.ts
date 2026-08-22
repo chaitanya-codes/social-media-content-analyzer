@@ -1,0 +1,6 @@
+import { describe, expect, it } from "vitest";
+import { mergeSemanticAnalysis, resolvePlatform } from "./merge";
+import { analyzeContent } from "../analysis/analyze";
+import type { GeminiOutput } from "./gemini";
+const output: GeminiOutput = {platform:{name:"LinkedIn",confidence:.9,evidence:"professional profile"},summary:"Clear draft.",findings:[{category:"Clarity",severity:"attention",message:"Clarify the claim.",explanation:"The claim is broad.",evidence:"useful idea",suggestedReplacement:"specific idea"},{category:"Hook",severity:"attention",message:"Hallucinated evidence.",explanation:"Not present.",evidence:"not in the post"}],recommendations:[]};
+describe("mergeSemanticAnalysis",()=>{it("maps only evidence found in the original text",()=>{const base=analyzeContent("A useful idea for teams.");const result=mergeSemanticAnalysis(base,"A useful idea for teams.",output);expect(result.findings.some(f=>f.message==="Clarify the claim.")).toBe(true);expect(result.findings.some(f=>f.message==="Hallucinated evidence.")).toBe(false);});it("keeps deterministic platform signals ahead of AI",()=>{const deterministic={platform:"Instagram" as const,confidence:.9,evidence:"Instagram label"};expect(resolvePlatform(deterministic,output).platform).toBe("Instagram");});});

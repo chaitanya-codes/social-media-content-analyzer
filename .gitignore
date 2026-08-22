@@ -7,3 +7,5 @@ node_modules
 tmp
 .pnpm-store
 tsconfig.tsbuildinfo
+*.traineddata
+pnpm-workspace.yaml
