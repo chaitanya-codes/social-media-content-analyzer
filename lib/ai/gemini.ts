@@ -27,5 +27,11 @@ export async function analyzeWithGemini(input: GeminiInput, options: {apiKey?: s
     if (!response.text) throw new Error("empty response");
     const parsed: unknown = JSON.parse(response.text); if (!validOutput(parsed)) throw new Error("invalid response");
     return {status:"available", output:parsed};
-  } catch { return {status:"failed", message:"Semantic analysis is unavailable. Basic analysis is still available."}; }
+  } catch (error) {
+    const reason = error instanceof Error ? error.message.toLowerCase() : "";
+    if (reason.includes("api key") || reason.includes("unauthorized") || reason.includes("permission")) return {status:"failed", message:"Gemini credentials were rejected. Check GEMINI_API_KEY."};
+    if (reason.includes("quota") || reason.includes("rate") || reason.includes("429")) return {status:"failed", message:"Gemini quota is unavailable. Basic analysis is still available."};
+    if (reason.includes("model") || reason.includes("not found")) return {status:"failed", message:"The configured Gemini model is unavailable. Check GEMINI_MODEL."};
+    return {status:"failed", message:"Semantic analysis is unavailable. Basic analysis is still available."};
+  }
 }
