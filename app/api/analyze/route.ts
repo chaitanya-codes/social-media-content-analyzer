@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import pdf from "pdf-parse";
-import { createWorker } from "tesseract.js";
+import { createWorker, PSM } from "tesseract.js";
 import { analyzeContent } from "@/lib/analysis/analyze";
 import { normalizeText } from "@/lib/extraction/normalize";
 import { MAX_FILE_SIZE } from "@/lib/validation/files";
@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     if (file.size > MAX_FILE_SIZE) return NextResponse.json({error:"That file is larger than 10 MB."}, {status:413});
     const buffer = Buffer.from(await file.arrayBuffer()); let text = ""; let sourceType: "pdf" | "image"; let extractionMethod: "pdf-text" | "ocr"; let extractionQuality: "high" | "medium" | "low" | undefined;
     if (file.type === "application/pdf") { sourceType="pdf"; extractionMethod="pdf-text"; const result = await pdf(buffer); text = normalizeText(result.text || ""); extractionQuality = text.length > 50 ? "high" : "low"; }
-    else if (["image/png","image/jpeg","image/webp"].includes(file.type)) { sourceType="image"; extractionMethod="ocr"; const worker = await createWorker("eng"); const result = await worker.recognize(buffer); text = normalizeText(result.data.text || ""); extractionQuality = result.data.confidence >= 80 ? "high" : result.data.confidence >= 55 ? "medium" : "low"; await worker.terminate(); }
+    else if (["image/png","image/jpeg","image/webp"].includes(file.type)) { sourceType="image"; extractionMethod="ocr"; const worker = await createWorker("eng"); await worker.setParameters({tessedit_pageseg_mode:PSM.SPARSE_TEXT, preserve_interword_spaces:"1"}); const result = await worker.recognize(buffer); text = normalizeText(result.data.text || ""); extractionQuality = result.data.confidence >= 80 ? "high" : result.data.confidence >= 55 ? "medium" : "low"; await worker.terminate(); }
     else return NextResponse.json({error:"This file type isn't supported."}, {status:415});
     if (!text) return NextResponse.json({error:"No readable text was found. Try a clearer image or a selectable-text PDF."}, {status:422});
     const deterministicAnalysis = analyzeContent(text);
