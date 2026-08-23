@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     if (!text) return NextResponse.json({error:"No readable text was found. Try a clearer image or a selectable-text PDF."}, {status:422});
     const deterministicAnalysis = analyzeContent(text);
     const deterministicPlatform = detectPlatform(text);
-    const semantic = await analyzeWithGemini({text, platform:deterministicPlatform.platform, image:sourceType === "image" && process.env.GEMINI_API_KEY ? {mimeType:file.type, data:buffer.toString("base64")} : undefined});
+    const semantic = await analyzeWithGemini({text, platform:deterministicPlatform.platform, image:sourceType === "image" && deterministicPlatform.confidence < 0.8 && process.env.GEMINI_API_KEY ? {mimeType:file.type, data:buffer.toString("base64")} : undefined});
     const analysis = semantic.status === "available" ? mergeSemanticAnalysis(deterministicAnalysis, text, semantic.output) : deterministicAnalysis;
     const platformDetection = resolvePlatform(deterministicPlatform, semantic.status === "available" ? semantic.output : undefined);
     return NextResponse.json({filename:file.name.replace(/[^\w. -]/g, ""), sourceType, extractionMethod, extractionQuality, text, platformDetection, semanticAnalysis:{status:semantic.status, ...(semantic.status !== "available" ? {message:semantic.message} : {})}, analysis});
