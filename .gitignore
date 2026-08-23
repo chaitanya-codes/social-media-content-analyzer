@@ -5,6 +5,5 @@ node_modules
 *.log
 .DS_Store
 tmp
-.pnpm-store
 tsconfig.tsbuildinfo
 *.traineddata

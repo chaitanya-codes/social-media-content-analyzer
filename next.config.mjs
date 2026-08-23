@@ -5,8 +5,7 @@ const nextConfig = {
     outputFileTracingIncludes: {
       "/*": [
         "./node_modules/tesseract.js/**/*",
-        "./node_modules/tesseract.js-core/**/*",
-        "./node_modules/.pnpm/tesseract.js-core@*/node_modules/tesseract.js-core/**/*"
+        "./node_modules/tesseract.js-core/**/*"
       ]
     }
   }
